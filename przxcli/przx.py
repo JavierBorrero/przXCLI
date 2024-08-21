@@ -138,11 +138,15 @@ def list(args):
         try:
             int_ids = [eval(i) for i in args.id]
             for id in int_ids:
-                json_formatted = json.dumps(data[id-1], indent=4)
-                print(json_formatted + ",")
+                task = next((task for task in data if task["id"] == id), None)
+                if task:
+                    json_formatted = json.dumps(task, indent=4)
+                    print(json_formatted + ",")
+                else:
+                    print(f"{BOLD}{RED}ID {id} no encontrado{RESET}")
             return
         except:
-            print(f"{BOLD}{RED}Ha introducido una letra o el indice esta fuera de rango{RESET}")
+            print(f"{BOLD}{RED}Ha introducido un valor no numerico{RESET}")
             return
         
 def update(args):
