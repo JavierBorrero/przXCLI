@@ -7,40 +7,72 @@ import json
 DEFAULT_PATH = "/home/jbc/przXCLI/tasks.json"
 
 def main():
-    parser = argparse.ArgumentParser(description="Herramienta CLI llamada przx")
+    parser = argparse.ArgumentParser(description="CLI to track tasks")
 
-    subparsers = parser.add_subparsers(dest="command", help="Subcomandos disponibles")
+    subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     """
         Comando Create
     """
-    parser_create = subparsers.add_parser("create", help="Crear algo nuevo")
+    parser_create = subparsers.add_parser("create", help="Create a new task")
 
     # Argument Title
-    parser_create.add_argument("--title", required=True, help="Title of the new task")
+    parser_create.add_argument(
+        "--title", 
+        required=True, 
+        help="Title of the new task"
+    )
 
     # Argument Status
     parser_create.add_argument(
         "--status", 
         required=True, 
         choices=["todo", "in-progress", "done"], 
-        help="Estado de la tarea ('todo', 'in-progress', 'done')"
+        help="Status of the tasks ('todo', 'in-progress', 'done')"
     )
 
     """
         Comando List
     """
-    parser_list = subparsers.add_parser("list", help="Listar algo nuevo")
+    parser_list = subparsers.add_parser("list", help="List all tasks or tasks by ids")
 
     # Argument Id
     parser_list.add_argument(
         "--id", 
         nargs='*', 
         required=False, 
-        help="Lista por id")
+        help="List by id")
+    
+    """
+        Comando update
+    """
+    parser_update = subparsers.add_parser("update", help="Update a task")
+
+    # Argument id
+    parser_update.add_argument(
+        "--id",
+        nargs=1,
+        required=True,
+        help="Update task by id"
+    )
+
+    # Argument title
+    parser_update.add_argument(
+        "--title", 
+        required=False,
+        help="New task title"
+    )
+
+    # Argument status
+    parser_update.add_argument(
+        "--status",
+        required=False,
+        help="New task status"
+    )
 
     parser_create.set_defaults(func=create)
     parser_list.set_defaults(func=list)
+    parser_update.set_defaults(func=update)
 
     args = parser.parse_args()
 
@@ -53,13 +85,13 @@ def main():
 
 def create(args):
     
-    data = load_file(DEFAULT_PATH)
+    file = load_file(DEFAULT_PATH)
 
-    task_id = len(data["tasks"]) + 1
+    task_id = len(file["tasks"]) + 1
 
     title = args.title
 
-    if any(task["title"].lower() == title.lower() for task in data["tasks"]):
+    if any(task["title"].lower() == title.lower() for task in file["tasks"]):
         print(f"{BOLD}{RED}Ese titulo ya existe{RESET}")
         return
 
@@ -79,8 +111,8 @@ def create(args):
         "updatedAt": updatedAt,
     }
 
-    data["tasks"].append(task)
-    save_data(data, DEFAULT_PATH)
+    file["tasks"].append(task)
+    save_data(file, DEFAULT_PATH)
 
     print(f"{BOLD}{GREEN}Tarea: '{title}' creada{RESET}")
 
@@ -95,7 +127,7 @@ def list(args):
     int_ids = []
 
     if len(data) == 0:
-        print(f"{BOLD}{RED}No hay tareas creadas{RESET}")
+        print(f"{BOLD}{RED}No tasks created{RESET}")
         return
     
     if args.id == None:
@@ -113,6 +145,39 @@ def list(args):
             print(f"{BOLD}{RED}Ha introducido una letra o el indice esta fuera de rango{RESET}")
             return
         
+def update(args):
+    file = load_file(DEFAULT_PATH)
+
+    data = file["tasks"]
+
+    # No title and no status in args
+    if args.title is None and args.status is None:
+        print(f"{BOLD}{RED}No title or status has been entered{RESET}")
+        return
+
+    # No tasks created
+    if len(data) == 0:
+        print(f"{BOLD}{RED}No tasks created{RESET}")
+        return
+    
+    task_id = int(args.id[0])
+
+    task = next((task for task in data if task["id"] == task_id), None)
+
+    # Change tile
+    task["title"] = args.title if args.title is not None else task["title"]
+
+    # Change status
+    task["status"] = args.status if args.status is not None else task["status"]
+
+    # Change updatedAt
+    date = datetime.now()
+    formatted_date = date.strftime("%d-%m-%Y %H:%M:%S")
+    task["updatedAt"] = formatted_date
+
+    save_data(file, DEFAULT_PATH)
+
+    print(f"{BOLD}{GREEN}task updated{RESET}")
 
 
 if __name__ == "__main__":
