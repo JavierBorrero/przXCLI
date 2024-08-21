@@ -209,7 +209,9 @@ def delete(args):
         return
     
     # No id in args
-    if args.id == None: print(f"{BOLD}{RED}No id(s) have been entered{RESET}")
+    if not args.id:
+        print(f"{BOLD}{RED}No id(s) have been entered{RESET}")
+        return
 
     try:
         ids = [int(i) for i in args.id]
