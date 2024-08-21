@@ -46,14 +46,14 @@ def main():
     """
         Comando update
     """
-    parser_update = subparsers.add_parser("update", help="Update a task")
+    parser_update = subparsers.add_parser("update", help="Update a task by id")
 
     # Argument id
     parser_update.add_argument(
         "--id",
         nargs=1,
         required=True,
-        help="Update task by id"
+        help="Id of the task to update"
     )
 
     # Argument title
@@ -70,9 +70,23 @@ def main():
         help="New task status"
     )
 
+    """
+        Delete command
+    """
+    parser_delete = subparsers.add_parser("delete", help="Delete a task by id")
+
+    # Argument id
+    parser_delete.add_argument(
+        "--id",
+        nargs='*',
+        required=True,
+        help="Id of the task to delete"
+    )
+
     parser_create.set_defaults(func=create)
     parser_list.set_defaults(func=list)
     parser_update.set_defaults(func=update)
+    parser_delete.set_defaults(func=delete)
 
     args = parser.parse_args()
 
@@ -136,7 +150,7 @@ def list(args):
         return
     else:
         try:
-            int_ids = [eval(i) for i in args.id]
+            int_ids = [int(i) for i in args.id]
             for id in int_ids:
                 task = next((task for task in data if task["id"] == id), None)
                 if task:
@@ -181,7 +195,44 @@ def update(args):
 
     save_data(file, DEFAULT_PATH)
 
-    print(f"{BOLD}{GREEN}task updated{RESET}")
+    print(f"{BOLD}{BLUE}task updated{RESET}")
+
+
+def delete(args):
+    file = load_file(DEFAULT_PATH)
+
+    data = file["tasks"]
+
+    # No tasks created
+    if len(data) == 0:
+        print(f"{BOLD}{RED}No tasks created{RESET}")
+        return
+    
+    # No id in args
+    if args.id == None: print(f"{BOLD}{RED}No id(s) have been entered{RESET}")
+
+    try:
+        ids = [int(i) for i in args.id]
+    except:
+        print(f"{BOLD}{RED}Ha introducido un valor no numerico{RESET}")
+        return
+    
+    tasks_to_delete = [task for task in data if task["id"] in ids]
+
+    if not tasks_to_delete:
+        print(f"{BOLD}{RED}No se encontraron tareas por esos ids{RESET}")
+        return
+    
+    print(f"Va a eliminar los IDs: {', '.join(map(str, ids))}. ¿Está seguro? (y/n)")
+    confirm = input().strip().lower()
+
+    if confirm == 'y':
+        data = [task for task in data if task["id"] not in ids]
+        file["tasks"] = data
+        save_data(file, DEFAULT_PATH)
+        print(f"{BOLD}{BLUE}Las tareas han sido eliminadas{RESET}")
+    else:
+        print(f"{BOLD}{RED}Operacion cancelada{RESET}")
 
 
 if __name__ == "__main__":
