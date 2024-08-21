@@ -101,7 +101,10 @@ def create(args):
     
     file = load_file(DEFAULT_PATH)
 
-    task_id = len(file["tasks"]) + 1
+    if file["tasks"]:
+        task_id = max(task["id"] for task in file["tasks"]) + 1
+    else:
+        task_id = 1
 
     title = args.title
 
