@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'przx=przxcli.przx:main'
+            'tm=taskManager.taskManager:main'
         ]
     }
 )

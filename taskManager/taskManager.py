@@ -1,10 +1,13 @@
-from przxcli.utils.manage_files import load_file, save_data
-from przxcli.utils.styles import *
+from taskManager.utils.manage_files import load_file, save_data
+from taskManager.utils.styles import *
 from datetime import datetime
+from pathlib import Path
 import argparse
 import json
 
-DEFAULT_PATH = "/home/jbc/przXCLI/tasks.json"
+current_directory = Path(__file__).parent
+
+DEFAULT_PATH = current_directory / "tasks.json"
 
 def main():
     parser = argparse.ArgumentParser(description="CLI to track tasks")
@@ -12,7 +15,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     """
-        Comando Create
+        Create Command
     """
     parser_create = subparsers.add_parser("create", help="Create a new task")
 
@@ -32,7 +35,7 @@ def main():
     )
 
     """
-        Comando List
+        List Command
     """
     parser_list = subparsers.add_parser("list", help="List all tasks or tasks by ids")
 
@@ -44,7 +47,7 @@ def main():
         help="List by id")
     
     """
-        Comando update
+        Update Command
     """
     parser_update = subparsers.add_parser("update", help="Update a task by id")
 
@@ -65,9 +68,10 @@ def main():
 
     # Argument status
     parser_update.add_argument(
-        "--status",
-        required=False,
-        help="New task status"
+        "--status", 
+        required=False, 
+        choices=["todo", "in-progress", "done"], 
+        help="Status of the tasks ('todo', 'in-progress', 'done')"
     )
 
     """
@@ -99,27 +103,34 @@ def main():
 
 def create(args):
     
+    # Load file
     file = load_file(DEFAULT_PATH)
 
+    # Set task id if tasks is empty
     if file["tasks"]:
         task_id = max(task["id"] for task in file["tasks"]) + 1
     else:
         task_id = 1
 
+    # Get title from args
     title = args.title
 
+    # If title is already in tasks
     if any(task["title"].lower() == title.lower() for task in file["tasks"]):
-        print(f"{BOLD}{RED}Ese titulo ya existe{RESET}")
+        print(f"{BOLD}{RED}This title already exists{RESET}")
         return
 
+    # Get status from args
     status = args.status
 
+    # Get create task date
     date = datetime.now()
     formatted_date = date.strftime("%d-%m-%Y %H:%M:%S")
 
     createdAt = formatted_date
     updatedAt = formatted_date
 
+    # Create the task
     task = {
         "id": task_id,
         "title": title,
@@ -128,7 +139,10 @@ def create(args):
         "updatedAt": updatedAt,
     }
 
+    # Append to the file
     file["tasks"].append(task)
+
+    # Save the file
     save_data(file, DEFAULT_PATH)
 
     print(f"{BOLD}{GREEN}Tarea: '{title}' creada{RESET}")
@@ -137,20 +151,26 @@ def create(args):
 
 def list(args):
 
+    # Load the file
     file = load_file(DEFAULT_PATH)
 
     data = file["tasks"]
 
     int_ids = []
 
+    # If no tasks on file
     if len(data) == 0:
         print(f"{BOLD}{RED}No tasks created{RESET}")
         return
     
+    # If no id on args
     if args.id == None:
         json_formatted = json.dumps(data, indent=4)
         print(json_formatted)
         return
+    
+    # Get all ids from args and look for tasks with id == args.id
+    # Then print the JSON
     else:
         try:
             int_ids = [int(i) for i in args.id]
@@ -160,13 +180,14 @@ def list(args):
                     json_formatted = json.dumps(task, indent=4)
                     print(json_formatted + ",")
                 else:
-                    print(f"{BOLD}{RED}ID {id} no encontrado{RESET}")
+                    print(f"{BOLD}{RED}ID {id} not found{RESET}")
             return
         except:
-            print(f"{BOLD}{RED}Ha introducido un valor no numerico{RESET}")
+            print(f"{BOLD}{RED}ID is not valid because it is not a numerical value{RESET}")
             return
         
 def update(args):
+    # Load file
     file = load_file(DEFAULT_PATH)
 
     data = file["tasks"]
@@ -181,9 +202,16 @@ def update(args):
         print(f"{BOLD}{RED}No tasks created{RESET}")
         return
     
-    task_id = int(args.id[0])
-
-    task = next((task for task in data if task["id"] == task_id), None)
+    # Convert id
+    try:
+        task_id = int(args.id[0])
+        task = next((task for task in data if task["id"] == task_id), None)
+        if not task:
+            print(f"{BOLD}{RED}ID {task_id} not found{RESET}")
+            return
+    except:
+        print(f"{BOLD}{RED}ID is not valid because it is not a numerical value{RESET}")
+        return
 
     # Change tile
     task["title"] = args.title if args.title is not None else task["title"]
@@ -196,12 +224,14 @@ def update(args):
     formatted_date = date.strftime("%d-%m-%Y %H:%M:%S")
     task["updatedAt"] = formatted_date
 
+    # Save file
     save_data(file, DEFAULT_PATH)
 
     print(f"{BOLD}{BLUE}task updated{RESET}")
 
 
 def delete(args):
+    # Load file
     file = load_file(DEFAULT_PATH)
 
     data = file["tasks"]
@@ -216,28 +246,33 @@ def delete(args):
         print(f"{BOLD}{RED}No id(s) have been entered{RESET}")
         return
 
+    # Convert ids
     try:
         ids = [int(i) for i in args.id]
     except:
-        print(f"{BOLD}{RED}Ha introducido un valor no numerico{RESET}")
+        print(f"{BOLD}{RED}ID is not valid because it is not a numerical value{RESET}")
         return
     
+    # Check if the ids are in the data
     tasks_to_delete = [task for task in data if task["id"] in ids]
 
+    # If no ids in the data
     if not tasks_to_delete:
-        print(f"{BOLD}{RED}No se encontraron tareas por esos ids{RESET}")
+        print(f"{BOLD}{RED}No tasks were found for the id(s){RESET}")
         return
     
-    print(f"Va a eliminar los IDs: {', '.join(map(str, ids))}. ¿Está seguro? (y/n)")
+    # If ids in data they will be deleted
+    print(f"The following IDs are to be deleted: {', '.join(map(str, ids))}. Continue? (y/n)")
     confirm = input().strip().lower()
 
     if confirm == 'y':
+        # Saves the tasks that are not in the list of ids
         data = [task for task in data if task["id"] not in ids]
         file["tasks"] = data
         save_data(file, DEFAULT_PATH)
-        print(f"{BOLD}{BLUE}Las tareas han sido eliminadas{RESET}")
+        print(f"{BOLD}{BLUE}The tasks have been deleted{RESET}")
     else:
-        print(f"{BOLD}{RED}Operacion cancelada{RESET}")
+        print(f"{BOLD}{RED}Operation cancelled{RESET}")
 
 
 if __name__ == "__main__":
