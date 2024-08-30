@@ -145,7 +145,7 @@ def create(args):
     # Save the file
     save_data(file, DEFAULT_PATH)
 
-    print(f"{BOLD}{GREEN}Tarea: '{title}' creada{RESET}")
+    print(f"{BOLD}{GREEN}Task: '{title}' created{RESET}")
 
     return
 
@@ -227,7 +227,10 @@ def update(args):
     # Save file
     save_data(file, DEFAULT_PATH)
 
-    print(f"{BOLD}{BLUE}task updated{RESET}")
+    json_formatted = json.dumps(task, indent=4)
+
+    print(f"{BOLD}{BLUE}Task updated{RESET}")
+    print(json_formatted)
 
 
 def delete(args):
